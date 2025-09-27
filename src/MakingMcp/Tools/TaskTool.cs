@@ -1,9 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Net;
-using System.Security.Authentication;
 using System.Text;
 using MakingMcp.Model;
-using MakingMcp.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;

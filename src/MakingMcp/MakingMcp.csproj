@@ -13,10 +13,17 @@
 
         <!-- Set recommended package metadata -->
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageId>SampleMcpServer</PackageId>
-        <PackageVersion>0.1.0-beta</PackageVersion>
-        <PackageTags>AI; MCP; server; stdio</PackageTags>
-        <Description>An MCP server using the MCP C# SDK.</Description>
+        <PackageId>MakingMcp</PackageId>
+        <PackageVersion>0.1.1</PackageVersion>
+        <PackageTags>AI; MCP; server; stdio; Agent;</PackageTags>
+        <Description>MCP server exposing file, web, shell, and agent tooling.</Description>
+        
+        <license>MIT</license>
+        <RepositoryUrl>https://github.com/AIDotNet/MakingMcp</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <Authors>aidotnet</Authors>
+        <Company>aidotnet</Company>
+        <Product>MakingMcp</Product>
         
     </PropertyGroup>
 

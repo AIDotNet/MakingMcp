@@ -1,19 +1,22 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-The solution centers on `src/AgentMcp`, where `Program.cs` wires up Model Context Protocol services and dependency injection. The `Tools/` folder holds discrete MCP tools (`FileTool`, `WebTool`, `BashTool`, `AgentTool`) that expose file, web, and shell capabilities; extend these classes when adding new endpoints. Configuration objects live in `Options/` and shared DTOs in `Model/`. Build artifacts land in `bin/` and transient assets in `obj/`; keep both out of version control.
+The `src/MakingMcp` project hosts the MCP server. `Program.cs` wires dependency injection, reads `OpenAIOptions`, and registers tools. Tool implementations live under `Tools/` (e.g., `ReadTool.cs`, `BashTool.cs`, `TaskTool.cs`). DTOs reside in `Model/`, configuration types in `Options/`, and `.mcp/server.json` captures default transports. Build outputs (`bin/`, `obj/`) are generated per configuration and stay untracked.
 
 ## Build, Test, and Development Commands
-Run `dotnet restore` once per environment to pull dependencies. Use `dotnet build src/AgentMcp/AgentMcp.csproj` for a clean compile. `dotnet run --project src/AgentMcp/AgentMcp.csproj` launches the MCP server over stdio for local IDE integration. When packaging for NuGet, execute `dotnet pack src/AgentMcp/AgentMcp.csproj -c Release` to emit artifacts under `bin/Release`.
+- `dotnet restore`: install NuGet dependencies before first build.
+- `dotnet build src/MakingMcp/MakingMcp.csproj`: compile the console host.
+- `dotnet run --project src/MakingMcp/MakingMcp.csproj tools=Task,Web`: start the MCP server over stdio with selected tool sets.
+- `dotnet pack src/MakingMcp/MakingMcp.csproj -c Release`: create NuGet packages in `bin/Release` when distributing binaries.
 
 ## Coding Style & Naming Conventions
-Target framework is `net8.0`; prefer modern C# features (file-scoped namespaces, `await using`, pattern matching). Use four spaces for indentation and keep files in UTF-8 without BOM. Name classes and public members with PascalCase, locals with camelCase, and asynchronous methods with an `Async` suffix. Follow existing folder boundaries when introducing new tools or options, and run `dotnet format` before submitting changes.
+Target `net8.0` and use nullable reference types. Prefer file-scoped namespaces, expression-bodied members when clear, and four-space indentation. Classes, records, and public members use PascalCase; locals and parameters use camelCase; async methods end with `Async`. Group new tools beneath `Tools/` and keep options and DTOs in their existing folders. Run `dotnet format` or the `Format Document` IDE command before committing.
 
 ## Testing Guidelines
-Automated tests are not yet present; add them under a sibling `tests/` directory using xUnit. Name test projects `<Feature>.Tests` and individual test methods `MethodName_State_ExpectedOutcome`. Execute `dotnet test` from the repository root to validate coverage, and keep new code changes paired with meaningful test cases.
+Unit tests are not yet present; add xUnit projects under `tests/`. Name test assemblies `<Module>.Tests` and methods `MethodUnderTest_State_Expected`. Use fakes for external services (OpenAI, Tavily) and verify tool behavior. Run `dotnet test` from the repo root and ensure new tests cover error paths for agent interactions.
 
 ## Commit & Pull Request Guidelines
-Write commit messages in the imperative mood (e.g., `Add WebTool retry policy`) and limit the subject to 72 characters. Provide focused commits that group related changes alongside their tests. Pull requests should summarize the change, outline validation steps (commands, manual checks), and link any tracking issues. Include screenshots or logs when altering tool outputs. Before requesting review, ensure the project builds and the MCP server starts cleanly.
+Write imperative commit subjects under 72 characters (e.g., `Add multi-edit range validation`). Keep commits scoped to a feature or fix plus relevant tests. Pull requests should describe the change, list validation commands, and link any issues. Include screenshots or logs when tool output or telemetry changes. Confirm `dotnet build` and `dotnet run` succeed locally before requesting review.
 
-## Agent-Specific Tips
-When adding tools, expose commands through `ToolDescriptor` definitions and ensure argument validation. Respect existing logger patterns for consistent telemetry. Document new capabilities in `README.md` so downstream MCP clients understand available tools and required configuration.
+## Agent & Configuration Tips
+Expose tools through `McpServerTool` factory methods and validate arguments before executing shell or network actions. Document new environment variables in `README.md`. Keep API keys (OpenAI, Tavily) outside source control and load them via `OpenAIOptions.Init`.

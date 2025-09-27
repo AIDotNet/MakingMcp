@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using MakingMcp.Options;
 using MakingMcp.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,11 +13,10 @@ internal static class Program
 {
     public static async Task Main(string[] args)
     {
-        OpenAIOptions.Init(args);
+        OpenAIOptions.Init();
 
         var builder = Host.CreateApplicationBuilder(args);
 
-        // 解析命令行参数 tools=Task,WebFetch,WebSearch,Write,Read,Edit,MultiEdit,Glob,Grep,Bash,BashOutput,KillBash
         var toolDictionary = new ConcurrentDictionary<string, McpServerTool[]>();
         PopulateToolDictionary(toolDictionary);
 

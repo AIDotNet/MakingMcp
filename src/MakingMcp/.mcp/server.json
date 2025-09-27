@@ -1,21 +1,26 @@
 {
   "$schema": "https://modelcontextprotocol.io/schemas/draft/2025-07-09/server.json",
-  "description": "<your description here>",
-  "name": "io.github.<your GitHub username here>/<your repo name>",
+  "description": "MCP server extending Semantic Kernel with file, web, shell, and agent tools.",
+  "name": "io.github.aidotnet/makingmcp",
   "packages": [
     {
       "registry_name": "nuget",
-      "name": "<your package ID here>",
-      "version": "0.1.0-beta",
+      "name": "MakingMcp",
+      "version": "0.1.1",
       "package_arguments": [],
-      "environment_variables": []
+      "environment_variables": [
+        "OPENAI_API_KEY",
+        "TAVILY_API_KEY",
+        "OPENAI_ENDPOINT",
+        "TASK_MODEL"
+      ]
     }
   ],
   "repository": {
-    "url": "https://github.com/<your GitHub username here>/<your repo name>",
+    "url": "https://github.com/AIDotNet/MakingMcp",
     "source": "github"
   },
   "version_detail": {
-    "version": "0.1.0-beta"
+    "version": "0.1.1"
   }
 }

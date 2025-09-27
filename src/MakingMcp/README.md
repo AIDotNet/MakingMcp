@@ -1,4 +1,4 @@
-# AgentMcp MCP 服务端（中文说明）
+# AgentMcp MCP 服务端
 
 本项目演示如何使用 C# 构建并发布一个基于 Model Context Protocol（MCP）的本地工具服务端。项目已经集成了以下能力：
 
@@ -31,34 +31,37 @@ dotnet run --project AgentMcp
   "mcpServers": {
     "AgentMcp": {
       "type": "stdio",
-      "command": "dotnet",
+      "command": "dnx",
       "args": [
-        "run",
-        "--project",
-        "<项目路径>/AgentMcp"
+        "MakingMcp",
+        "--yes"
       ],
-      "env":{
-        "TOKEN_MODEL":"gpt-4.1",
-        "OPENAI_ENDPOINT":"https://api.token-ai.cn/v1",
-        "API_KEY":"你的Key"
+      "env": {
+        "TASK_MODEL": "gpt-4.1",
+        "OPENAI_ENDPOINT": "https://api.token-ai.cn/v1",
+        "API_KEY": "你的Key"
       }
     }
   }
 }
 ```
+
 ## 主要工具简介
 
 ### FileTool
+
 - `Read` / `Write`：读取或写入文件内容。
 - `Edit` / `MultiEdit`：根据上下文精确替换文本，支持多段批量替换。
 - `Glob`：使用类 glob 模式列出文件。
 - `Grep`：封装 ripgrep 提供强大的代码搜索。
 
 ### WebTool（依赖 Tavily）
+
 - `WebFetch`：抓取网页内容，自动清洗并生成摘要，JSON 格式返回。
 - `WebSearch`：调用 Tavily 搜索并返回结构化结果与 AI 答案。
 
 ### BashTool
+
 - `RunBashCommand`：支持同步执行或后台运行 bash 命令，内建超时控制与日志收集。
 - `BashOutput`：查看后台命令最新输出，可按正则过滤。
 - `KillBash`：终止后台执行的命令会话。
