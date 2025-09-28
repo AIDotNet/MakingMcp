@@ -1,9 +1,12 @@
-﻿name: Build and Release EXE
+name: Build and Release EXE
 
 on:
   push:
     tags:
       - 'v*.*.*'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -43,4 +46,3 @@ jobs:
           files: publish/MakingMcp.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
