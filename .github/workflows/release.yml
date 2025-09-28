@@ -54,5 +54,6 @@ jobs:
           files: publish/MakingMcp.exe
           prerelease: ${{ env.IS_TAG == 'false' }}
           make_latest: ${{ env.IS_TAG == 'false' }}
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
