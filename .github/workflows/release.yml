@@ -6,6 +6,12 @@ on:
       - 'v*.*.*'
     paths:
       - 'src/MakingMcp/MakingMcp.csproj'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -38,14 +44,30 @@ jobs:
       - name: Get tag name
         id: get_tag
         run: |
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "TAG=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+            echo "IS_TAG=true" >> $GITHUB_ENV
+            echo "IS_MANUAL=true" >> $GITHUB_ENV
+          elif [[ $GITHUB_REF == refs/tags/* ]]; then
             echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
             echo "IS_TAG=true" >> $GITHUB_ENV
+            echo "IS_MANUAL=false" >> $GITHUB_ENV
           else
             echo "TAG=latest" >> $GITHUB_ENV
             echo "IS_TAG=false" >> $GITHUB_ENV
+            echo "IS_MANUAL=false" >> $GITHUB_ENV
           fi
         shell: bash
+
+      - name: Create tag for manual release
+        if: env.IS_MANUAL == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ env.TAG }}" -m "Release ${{ env.TAG }}"
+          git push origin "${{ env.TAG }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release with Assets
         uses: softprops/action-gh-release@v2
