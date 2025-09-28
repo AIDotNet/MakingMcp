@@ -5,6 +5,7 @@ using MakingMcp.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace MakingMcp;
@@ -60,7 +61,14 @@ internal static class Program
         builder.Logging.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace);
 
         var stdio = builder.Services
-            .AddMcpServer((options => { }))
+            .AddMcpServer((options =>
+            {
+                options.ServerInfo = new Implementation
+                {
+                    Name = "MakingMcp",
+                    Version = "0.2.1",
+                };
+            }))
             .WithStdioServerTransport();
 
         foreach (var tool in toolDictionary)
