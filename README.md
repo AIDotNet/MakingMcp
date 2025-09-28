@@ -39,3 +39,9 @@ AgentMcp hosts a Model Context Protocol (MCP) server that wires together file, w
 
 ## Contributing
 Follow the repository guidelines in `AGENTS.md`, format code with `dotnet format`, and provide focused commits paired with relevant tests. Open a pull request with a clear summary, validation steps, and any supporting screenshots or logs when tool outputs change.
+
+
+## WeChat
+![84bab9b161235680f0a53fc5d4f5f3f2](https://github.com/user-attachments/assets/c16abfc9-d285-40be-b7c4-5ca6fc2cd9ab)
+
+
