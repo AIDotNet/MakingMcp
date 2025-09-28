@@ -37,18 +37,15 @@ public class EditTool
 
         if (!File.Exists(normalizedPath))
         {
-            return await Task.FromResult(Error($"File not found: {normalizedPath}"));
+            // 创建文件
+            Directory.CreateDirectory(Path.GetDirectoryName(normalizedPath));
+            await File.WriteAllTextAsync(normalizedPath, string.Empty);
         }
 
         if (!HasRead(normalizedPath))
         {
             return await Task.FromResult(
                 Error("You must call the Read tool on this file before attempting to edit it."));
-        }
-
-        if (string.IsNullOrEmpty(old_string))
-        {
-            return await Task.FromResult(Error("Parameter old_string must be provided."));
         }
 
         if (string.IsNullOrEmpty(new_string))
@@ -63,32 +60,64 @@ public class EditTool
 
         try
         {
-            var originalContent = await File.ReadAllTextAsync(normalizedPath);
-            var occurrences = CountOccurrences(originalContent, old_string);
-
-            if (occurrences == 0)
+            if (File.Exists(normalizedPath))
             {
-                return Error($"No occurrences of the provided old_string were found in {normalizedPath}.");
+                var originalContent = await File.ReadAllTextAsync(normalizedPath);
+
+                // Handle empty file case (newly created)
+                if (string.IsNullOrEmpty(originalContent))
+                {
+                    // For empty files, we can only "replace" empty string or add content
+                    if (string.IsNullOrEmpty(old_string))
+                    {
+                        // Adding content to empty file
+                        return await HandleEmptyFileEdit(normalizedPath, new_string);
+                    }
+                    else
+                    {
+                        return Error($"Cannot find old_string '{old_string}' in empty file {normalizedPath}.");
+                    }
+                }
+
+                var occurrences = CountOccurrences(originalContent, old_string);
+
+                if (occurrences == 0)
+                {
+                    return Error($"No occurrences of the provided old_string were found in {normalizedPath}.");
+                }
+
+                if (!replace_all && occurrences > 1)
+                {
+                    return Error(
+                        "old_string is not unique in the file. Provide more context or set replace_all to true.");
+                }
+
+                string updatedContent = replace_all
+                    ? originalContent.Replace(old_string, new_string, StringComparison.Ordinal)
+                    : ReplaceFirst(originalContent, old_string, new_string);
+
+                await File.WriteAllTextAsync(normalizedPath, updatedContent);
+
+                return JsonSerializer.Serialize(new
+                {
+                    filePath = file_path,
+                    message = "Successfully applied edit.",
+                    totalChanges = replace_all ? occurrences : 1,
+                    lengthChange = updatedContent.Length - originalContent.Length,
+                }, JsonSerializerOptions.Web);
             }
-
-            if (!replace_all && occurrences > 1)
+            else
             {
-                return Error("old_string is not unique in the file. Provide more context or set replace_all to true.");
+                await File.WriteAllTextAsync(normalizedPath, new_string);
+
+                return JsonSerializer.Serialize(new
+                {
+                    filePath = file_path,
+                    message = "Successfully applied edit.",
+                    totalChanges = 1,
+                    lengthChange = 1,
+                }, JsonSerializerOptions.Web);
             }
-
-            string updatedContent = replace_all
-                ? originalContent.Replace(old_string, new_string, StringComparison.Ordinal)
-                : ReplaceFirst(originalContent, old_string, new_string);
-
-            await File.WriteAllTextAsync(normalizedPath, updatedContent);
-
-            return JsonSerializer.Serialize(new
-            {
-                filePath = file_path,
-                message = " Successfully applied edit.",
-                totalChanges = replace_all ? occurrences : 1,
-                lengthChange = updatedContent.Length - originalContent.Length,
-            }, JsonSerializerOptions.Web);
         }
         catch (Exception ex)
         {
@@ -200,6 +229,31 @@ public class EditTool
 
     public static string Error(string message)
     {
-        return $"ERROR: {message}";
+        return JsonSerializer.Serialize(new { error = message }, JsonSerializerOptions.Web);
+    }
+
+    private static async Task<string> CreateAndInitializeFile(string filePath)
+    {
+        var directory = Path.GetDirectoryName(filePath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        await File.WriteAllTextAsync(filePath, string.Empty);
+        MarkRead(filePath);
+        return string.Empty; // No error
+    }
+
+    private static async Task<string> HandleEmptyFileEdit(string filePath, string newContent)
+    {
+        await File.WriteAllTextAsync(filePath, newContent, Encoding.UTF8);
+        return JsonSerializer.Serialize(new
+        {
+            filePath,
+            message = "Successfully added content to new file.",
+            totalChanges = 1,
+            lengthChange = newContent.Length,
+        }, JsonSerializerOptions.Web);
     }
 }
