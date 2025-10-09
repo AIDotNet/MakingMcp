@@ -15,7 +15,7 @@ if %errorLevel% neq 0 (
     exit /b 1
 )
 
-set "EXE_PATH=%~dp0src\MakingMcp.Web\bin\Release\net10.0\win-x64\publish\MakingMcp.Web.exe"
+set "EXE_PATH=%~dp0\MakingMcp.Web.exe"
 
 if not exist "%EXE_PATH%" (
     echo Warning: Executable not found at:

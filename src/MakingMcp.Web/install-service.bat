@@ -15,18 +15,7 @@ if %errorLevel% neq 0 (
     exit /b 1
 )
 
-set "EXE_PATH=%~dp0src\MakingMcp.Web\bin\Release\net10.0\win-x64\publish\MakingMcp.Web.exe"
-
-if not exist "%EXE_PATH%" (
-    echo Error: Executable not found at:
-    echo %EXE_PATH%
-    echo.
-    echo Please build and publish the project first:
-    echo   dotnet publish src\MakingMcp.Web\MakingMcp.Web.csproj -c Release -r win-x64 --self-contained
-    echo.
-    pause
-    exit /b 1
-)
+set "EXE_PATH=%~dp0\MakingMcp.Web.exe"
 
 echo Installing MakingMcp Web Service...
 echo Executable: %EXE_PATH%
