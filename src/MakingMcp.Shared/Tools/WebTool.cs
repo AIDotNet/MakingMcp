@@ -50,14 +50,13 @@ public class WebTool
         [Description("The URL to fetch content from")]
         string url)
     {
-        var apiKey = GetTavilyApiKey();
-        if (apiKey is null)
+        if (string.IsNullOrEmpty(OpenAIOptions.TAVILY_API_KEY))
         {
             return Error("TAVILY_API_KEY environment variable is required for web access.");
         }
 
         var extractResult = await CallTavilyAsync(
-            apiKey,
+            OpenAIOptions.TAVILY_API_KEY,
             "extract",
             new JsonObject
             {
@@ -106,10 +105,9 @@ public class WebTool
             return Error("query must be provided.");
         }
 
-        var apiKey = GetTavilyApiKey();
-        if (apiKey is null)
+        if (string.IsNullOrEmpty(OpenAIOptions.TAVILY_API_KEY))
         {
-            return Error("TAVILY_API_KEY environment variable is required for web search.");
+            return Error("TAVILY_API_KEY environment variable is required for web access.");
         }
 
         var payload = new JsonObject
@@ -131,7 +129,7 @@ public class WebTool
             payload["exclude_domains"] = JsonSerializer.SerializeToNode(blocked_domains, JsonOptions);
         }
 
-        var searchResult = await CallTavilyAsync(apiKey, "search", payload);
+        var searchResult = await CallTavilyAsync(OpenAIOptions.TAVILY_API_KEY, "search", payload);
 
         if (!searchResult.Success)
         {
@@ -170,11 +168,6 @@ public class WebTool
         return true;
     }
 
-    public static string? GetTavilyApiKey()
-    {
-        var key = Environment.GetEnvironmentVariable("TAVILY_API_KEY");
-        return string.IsNullOrWhiteSpace(key) ? null : key;
-    }
 
     private static async Task<(bool Success, JsonNode? Payload, string? ErrorMessage)> CallTavilyAsync(
         string apiKey,

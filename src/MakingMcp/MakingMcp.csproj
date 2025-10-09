@@ -10,21 +10,11 @@
         <PackageType>McpServer</PackageType>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageId>MakingMcp</PackageId>
-        <PackageVersion>0.2.2</PackageVersion>
-        <PackageTags>AI; MCP; server; stdio; Agent;</PackageTags>
-        <Description>MCP server exposing file, web, shell, and agent tooling.</Description>
 
         <!-- 自包含部署配置 -->
         <SelfContained>true</SelfContained>
         <PublishSingleFile>false</PublishSingleFile>
         <PublishTrimmed>false</PublishTrimmed>
-
-        <license>MIT</license>
-        <RepositoryUrl>https://github.com/AIDotNet/MakingMcp</RepositoryUrl>
-        <RepositoryType>git</RepositoryType>
-        <Authors>aidotnet</Authors>
-        <Company>aidotnet</Company>
-        <Product>MakingMcp</Product>
 
     </PropertyGroup>
 

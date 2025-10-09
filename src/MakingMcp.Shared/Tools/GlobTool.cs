@@ -1,7 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.ComponentModel;
-using System.Security.Cryptography;
-using System.Text;
+﻿using System.ComponentModel;
 using System.Text.Json;
 using Microsoft.SemanticKernel;
 using ModelContextProtocol.Server;
@@ -10,15 +7,6 @@ namespace MakingMcp.Tools;
 
 public class GlobTool
 {
-    // 文件系统目录结构缓存 - 缓存目录的文件列表和最后修改时间
-    private static readonly ConcurrentDictionary<string, DirectoryCacheEntry> _directoryCache = new();
-
-    // 缓存过期时间（30秒）
-    private static readonly TimeSpan _cacheExpiration = TimeSpan.FromSeconds(30);
-
-    // 查询结果缓存 - 缓存具体的 pattern + path 组合结果
-    private static readonly ConcurrentDictionary<string, QueryCacheEntry> _queryCache = new();
-
     // 需要忽略的常见目录（构建产物、依赖、缓存等 - 覆盖主流语言和框架）
     private static readonly HashSet<string> _ignoredDirectories = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -65,24 +53,11 @@ public class GlobTool
         "tmp", "temp", ".tmp", ".cache", ".local"
     };
 
-    private class DirectoryCacheEntry
-    {
-        public List<FileSystemEntryInfo> Entries { get; set; } = new();
-        public DateTime CachedAt { get; set; }
-        public DateTime DirectoryLastWrite { get; set; }
-    }
-
     private class FileSystemEntryInfo
     {
         public string FullPath { get; set; } = "";
         public string RelativePath { get; set; } = "";
         public DateTime LastWrite { get; set; }
-    }
-
-    private class QueryCacheEntry
-    {
-        public string Result { get; set; } = "";
-        public DateTime CachedAt { get; set; }
     }
 
     [McpServerTool(Name = "Glob"), KernelFunction("Glob"), Description(
@@ -113,95 +88,29 @@ public class GlobTool
 
         try
         {
-            // 生成查询缓存键
-            var queryCacheKey = GetCacheKey(normalizedBasePath, pattern);
-
-            // 检查查询缓存
-            if (_queryCache.TryGetValue(queryCacheKey, out var cachedQuery))
-            {
-                if (DateTime.UtcNow - cachedQuery.CachedAt < _cacheExpiration)
-                {
-                    return cachedQuery.Result;
-                }
-                else
-                {
-                    _queryCache.TryRemove(queryCacheKey, out _);
-                }
-            }
-
             var regex = EditTool.GlobToRegex(pattern);
-            List<FileSystemEntryInfo> allEntries;
+            var allEntries = ScanDirectory(normalizedBasePath);
 
-            // 检查目录缓存
-            if (_directoryCache.TryGetValue(normalizedBasePath, out var cachedDir))
-            {
-                var currentDirLastWrite = Directory.GetLastWriteTimeUtc(normalizedBasePath);
-
-                // 验证缓存是否仍然有效
-                if (DateTime.UtcNow - cachedDir.CachedAt < _cacheExpiration &&
-                    cachedDir.DirectoryLastWrite >= currentDirLastWrite)
-                {
-                    allEntries = cachedDir.Entries;
-                }
-                else
-                {
-                    // 缓存过期，重新扫描
-                    _directoryCache.TryRemove(normalizedBasePath, out _);
-                    allEntries = ScanDirectory(normalizedBasePath);
-
-                    _directoryCache.TryAdd(normalizedBasePath, new DirectoryCacheEntry
-                    {
-                        Entries = allEntries,
-                        CachedAt = DateTime.UtcNow,
-                        DirectoryLastWrite = currentDirLastWrite
-                    });
-                }
-            }
-            else
-            {
-                // 首次扫描，建立缓存
-                allEntries = ScanDirectory(normalizedBasePath);
-
-                _directoryCache.TryAdd(normalizedBasePath, new DirectoryCacheEntry
-                {
-                    Entries = allEntries,
-                    CachedAt = DateTime.UtcNow,
-                    DirectoryLastWrite = Directory.GetLastWriteTimeUtc(normalizedBasePath)
-                });
-            }
-
-            // 在缓存的结果上应用正则匹配和排序
+            // 在结果上应用正则匹配和排序
             var matchedEntries = allEntries
                 .Where(e => regex.IsMatch(e.RelativePath))
                 .OrderByDescending(e => e.LastWrite)
                 .Take(EditTool.GlobOutputLimit)
                 .ToList();
 
-            var ordered = matchedEntries
-                .Select(e => (e.RelativePath, e.FullPath, e.LastWrite))
-                .ToList();
-
-            if (ordered.Count == 0)
+            if (matchedEntries.Count == 0)
             {
-                return
-                    $"No entries matched the provided pattern.\npattern: {pattern}\nsearch root: {normalizedBasePath}";
+                return $"No entries matched the provided pattern.\npattern: {pattern}\nsearch root: {normalizedBasePath}";
             }
 
-            var filenames = ordered.Select(e => e.FullPath).ToList();
+            var filenames = matchedEntries.Select(e => e.FullPath).ToList();
 
             var result = JsonSerializer.Serialize(new
             {
                 filenames = filenames,
-                numFiles = ordered.Count,
+                numFiles = matchedEntries.Count,
                 truncated = false,
             }, JsonSerializerOptions.Web);
-
-            // 缓存查询结果
-            _queryCache.TryAdd(queryCacheKey, new QueryCacheEntry
-            {
-                Result = result,
-                CachedAt = DateTime.UtcNow
-            });
 
             return result;
         }
@@ -215,58 +124,81 @@ public class GlobTool
     {
         var entries = new List<FileSystemEntryInfo>();
         var basePathLength = basePath.Length;
+        var stack = new Stack<string>();
+        stack.Push(basePath);
 
-        void ScanRecursive(string currentPath)
+        while (stack.Count > 0)
         {
+            var currentPath = stack.Pop();
+
+            // 检查是否为忽略的目录（但不跳过根目录）
+            if (currentPath != basePath)
+            {
+                var dirName = Path.GetFileName(currentPath);
+                if (_ignoredDirectories.Contains(dirName))
+                {
+                    continue;
+                }
+            }
+
             try
             {
-                // 扫描文件
-                foreach (var file in Directory.EnumerateFiles(currentPath))
+                // 1. 扫描当前目录的文件
+                try
                 {
-                    var relative = file.Length > basePathLength &&
-                                   file[basePathLength] == Path.DirectorySeparatorChar
-                        ? file.Substring(basePathLength + 1)
-                        : Path.GetRelativePath(basePath, file);
-
-                    var normalizedRelative = Path.DirectorySeparatorChar == '/'
-                        ? relative
-                        : relative.Replace(Path.DirectorySeparatorChar, '/');
-
-                    entries.Add(new FileSystemEntryInfo
+                    foreach (var file in Directory.EnumerateFiles(currentPath))
                     {
-                        FullPath = file,
-                        RelativePath = normalizedRelative,
-                        LastWrite = File.GetLastWriteTimeUtc(file)
-                    });
+                        try
+                        {
+                            var relative = file.Length > basePathLength &&
+                                           file[basePathLength] == Path.DirectorySeparatorChar
+                                ? file.Substring(basePathLength + 1)
+                                : Path.GetRelativePath(basePath, file);
+
+                            var normalizedRelative = Path.DirectorySeparatorChar == '/'
+                                ? relative
+                                : relative.Replace(Path.DirectorySeparatorChar, '/');
+
+                            var info = new FileSystemEntryInfo
+                            {
+                                FullPath = file,
+                                RelativePath = normalizedRelative,
+                                LastWrite = File.GetLastWriteTimeUtc(file)
+                            };
+
+                            entries.Add(info);
+                        }
+                        catch
+                        {
+                            // 忽略单个文件的读取错误，继续处理其他文件
+                        }
+                    }
+                }
+                catch
+                {
+                    // 忽略整个目录的文件枚举错误，继续处理子目录
                 }
 
-                // 递归扫描子目录（跳过忽略的目录）
-                foreach (var dir in Directory.EnumerateDirectories(currentPath))
+                // 2. 将子目录添加到栈中
+                try
                 {
-                    var dirName = Path.GetFileName(dir);
-                    if (_ignoredDirectories.Contains(dirName))
+                    foreach (var subDir in Directory.EnumerateDirectories(currentPath))
                     {
-                        continue;
+                        stack.Push(subDir);
                     }
-
-                    ScanRecursive(dir);
+                }
+                catch
+                {
+                    // 忽略子目录枚举错误
                 }
             }
             catch
             {
-                // 忽略权限错误等异常
+                // 忽略整个目录的访问错误，继续处理栈中的其他目录
             }
         }
 
-        ScanRecursive(basePath);
         return entries;
-    }
-
-    private static string GetCacheKey(string path, string pattern)
-    {
-        var combined = $"{path}|{pattern}";
-        var hash = MD5.HashData(Encoding.UTF8.GetBytes(combined));
-        return Convert.ToHexString(hash);
     }
 
     private static string Error(string message)

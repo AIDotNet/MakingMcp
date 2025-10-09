@@ -1,0 +1,18 @@
+<Project>
+    <!-- See https://aka.ms/dotnet/msbuild/customize for more details on customizing your build -->
+    <PropertyGroup>
+        <PackageVersion>$(Version)</PackageVersion>
+        <Version>0.2.4</Version>
+        <Authors>AIDtoNet</Authors>
+        <Company>AIDotNet</Company>
+        <Product>MakingMcp</Product>
+        <Description>MCP server exposing file, web, shell, and agent tooling.</Description>
+        <PackageTags>AI; MCP; server; stdio; Agent;</PackageTags>
+        <license>MIT</license>
+        <RepositoryUrl>https://github.com/AIDotNet/MakingMcp</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <Authors>aidotnet</Authors>
+        <Company>aidotnet</Company>
+        <Product>MakingMcp</Product>
+    </PropertyGroup>
+</Project>

@@ -10,6 +10,8 @@ public class OpenAIOptions
 
     public static string? EMBEDDING_MODEL { get; private set; } = "text-embedding-3-small";
 
+    public static string? TAVILY_API_KEY { get; private set; }
+
     public static int MAX_OUTPUT_TOKENS { get; private set; } = 32000;
 
     private const string ApiKeyVariable = "OPENAI_API_KEY";
@@ -17,6 +19,7 @@ public class OpenAIOptions
     private const string TaskModelVariable = "TASK_MODEL";
     private const string EmbeddingModelVariable = "EMBEDDING_MODEL";
     private const string MaxOutputTokensVariable = "MAX_OUTPUT_TOKENS";
+    private const string TavilyApiKeyVariable = "TAVILY_API_KEY";
 
     public static void Init()
     {
@@ -43,6 +46,8 @@ public class OpenAIOptions
         {
             EMBEDDING_MODEL = embeddingModel;
         }
+
+        TAVILY_API_KEY = ReadEnv(TavilyApiKeyVariable);
     }
 
     public static void Init(IConfiguration configuration)
@@ -70,6 +75,8 @@ public class OpenAIOptions
         {
             EMBEDDING_MODEL = embeddingModel;
         }
+
+        TAVILY_API_KEY = configuration[TavilyApiKeyVariable];
     }
 
     private static string? ReadEnv(string variableName)

@@ -5,112 +5,145 @@ using System.Reflection;
 using System.Security.Principal;
 using MakingMcp.Tools;
 using ModelContextProtocol.Server;
+using Serilog;
 
-// Check for installation/uninstallation arguments
-if (args.Length > 0)
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/makingmcp-.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+try
 {
-    var command = args[0].ToLower();
-    if (command == "install")
+    Log.Information("Starting MakingMcp Web Service");
+
+    if (args.Length > 0)
     {
-        InstallWindowsService();
-        return;
-    }
-    else if (command == "uninstall")
-    {
-        UninstallWindowsService();
-        return;
-    }
-}
-
-
-var builder = WebApplication.CreateBuilder(args);
-
-OpenAIOptions.Init(builder.Configuration);
-
-// Add Windows Service support
-builder.Services.AddWindowsService(options => { options.ServiceName = "MakingMcpWebService"; });
-
-// Create and populate the tool dictionary at startup
-var toolDictionary = new ConcurrentDictionary<string, McpServerTool[]>();
-PopulateToolDictionary(toolDictionary);
-
-builder.Services.AddMcpServer()
-    .WithHttpTransport(options =>
-    {
-        // Configure per-session options to filter tools based on route category
-        options.ConfigureSessionOptions = async (httpContext, mcpOptions, _) =>
+        var command = args[0].ToLower();
+        if (command == "install")
         {
-            // Determine tool category from route parameters
-            var toolCategory = httpContext.Request.Query["tools"].ToString()?.ToLower();
+            InstallWindowsService();
+            return;
+        }
+        else if (command == "uninstall")
+        {
+            UninstallWindowsService();
+            return;
+        }
+    }
 
-            if (string.IsNullOrEmpty(toolCategory))
+
+    var builder = WebApplication.CreateBuilder(args);
+
+    builder.Host.UseSerilog();
+
+    OpenAIOptions.Init(builder.Configuration);
+    Log.Information("OpenAI configuration initialized");
+
+    // Add Windows Service support
+    builder.Services.AddWindowsService(options => { options.ServiceName = "MakingMcpWebService"; });
+
+    // Create and populate the tool dictionary at startup
+    var toolDictionary = new ConcurrentDictionary<string, McpServerTool[]>();
+    PopulateToolDictionary(toolDictionary);
+
+    builder.Services.AddMcpServer()
+        .WithHttpTransport(options =>
+        {
+
+
+            // Configure per-session options to filter tools based on route category
+            options.ConfigureSessionOptions = async (httpContext, mcpOptions, _) =>
             {
-                toolCategory = "all";
-            }
+                // Determine tool category from route parameters
+                var toolCategory = httpContext.Request.Query["tools"].ToString()?.ToLower();
 
-            var toolDictionary = new ConcurrentDictionary<string, McpServerTool[]>();
-            PopulateToolDictionary(toolDictionary);
-
-            var tools = toolCategory;
-
-            if (!string.IsNullOrEmpty(tools))
-            {
-                var selectedTools =
-                    tools.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                var selectedToolList = new List<McpServerTool>();
-                foreach (var tool in selectedTools)
+                if (string.IsNullOrEmpty(toolCategory))
                 {
-                    if (toolDictionary.TryGetValue(tool.ToLower(), out var toolArray))
+                    toolCategory = "all";
+                }
+
+                var toolDictionary = new ConcurrentDictionary<string, McpServerTool[]>();
+                PopulateToolDictionary(toolDictionary);
+
+                var tools = toolCategory;
+
+                Log.Information("Configuring session with tool category: {ToolCategory}", toolCategory);
+
+                if (!string.IsNullOrEmpty(tools))
+                {
+                    var selectedTools =
+                        tools.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var selectedToolList = new List<McpServerTool>();
+                    foreach (var tool in selectedTools)
                     {
-                        selectedToolList.AddRange(toolArray);
+                        if (toolDictionary.TryGetValue(tool.ToLower(), out var toolArray))
+                        {
+                            selectedToolList.AddRange(toolArray);
+                            Log.Information("Added tool: {Tool} with {Count} methods", tool, toolArray.Length);
+                        }
+                        else
+                        {
+                            Log.Warning("Tool '{Tool}' not recognized", tool);
+                        }
                     }
-                    else
+
+                    if (selectedToolList.Count > 0)
                     {
-                        Console.WriteLine($"Warning: Tool '{tool}' not recognized.");
+                        // Clear existing tools and add only the selected ones
+                        toolDictionary.Clear();
+                        toolDictionary.TryAdd("selected", selectedToolList.ToArray());
+                    }
+                }
+                else
+                {
+                    if (toolDictionary.TryGetValue("all", out var allTools))
+                    {
+                        toolDictionary.Clear();
+                        toolDictionary.TryAdd("all", allTools);
                     }
                 }
 
-                if (selectedToolList.Count > 0)
+                mcpOptions.ServerInfo = new ModelContextProtocol.Protocol.Implementation()
                 {
-                    // Clear existing tools and add only the selected ones
-                    toolDictionary.Clear();
-                    toolDictionary.TryAdd("selected", selectedToolList.ToArray());
-                }
-            }
-            else
-            {
-                if (toolDictionary.TryGetValue("all", out var allTools))
+                    Version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "1.0.0",
+                    Name = "MakingMcp Web Service",
+                    Title = "MakingMcp Web Service"
+                };
+                mcpOptions.Capabilities = new();
+                mcpOptions.Capabilities.Tools = new();
+                var toolCollection = mcpOptions.ToolCollection = new McpServerPrimitiveCollection<McpServerTool>();
+
+                foreach (var tool in toolDictionary.SelectMany(x => x.Value))
                 {
-                    toolDictionary.Clear();
-                    toolDictionary.TryAdd("all", allTools);
+                    toolCollection.Add(tool);
                 }
-            }
 
-            mcpOptions.Capabilities = new();
-            mcpOptions.Capabilities.Tools = new();
-            var toolCollection = mcpOptions.ToolCollection = new McpServerPrimitiveCollection<McpServerTool>();
+                await Task.CompletedTask;
+            };
+        });
 
-            foreach (var tool in toolDictionary.SelectMany(x => x.Value))
-            {
-                toolCollection.Add(tool);
-            }
+    builder.Services.AddOpenApi();
 
-            await Task.CompletedTask;
-        };
-    });
+    var app = builder.Build();
 
-builder.Services.AddOpenApi();
+    if (app.Environment.IsDevelopment())
+    {
+        app.MapOpenApi();
+    }
 
-var app = builder.Build();
+    app.MapMcp("/mcp");
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
+    Log.Information("MakingMcp Web Service started successfully");
+    app.Run();
 }
-
-app.MapMcp("/mcp");
-
-app.Run();
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
 
 static void PopulateToolDictionary(ConcurrentDictionary<string, McpServerTool[]> toolDictionary)
@@ -151,7 +184,7 @@ static void PopulateToolDictionary(ConcurrentDictionary<string, McpServerTool[]>
     toolDictionary.TryAdd("MultiEdit", multiEditTools);
     toolDictionary.TryAdd("Read", readTools);
     toolDictionary.TryAdd("Write", writeTools);
-    if (!string.IsNullOrEmpty(WebTool.GetTavilyApiKey()))
+    if (!string.IsNullOrEmpty(OpenAIOptions.TAVILY_API_KEY))
     {
         toolDictionary.TryAdd("Web", webTools);
     }
@@ -166,7 +199,7 @@ static void PopulateToolDictionary(ConcurrentDictionary<string, McpServerTool[]>
 
 static McpServerTool[] GetToolsForType<[DynamicallyAccessedMembers(
         DynamicallyAccessedMemberTypes.PublicMethods)]
-    T>()
+T>()
 {
     var tools = new List<McpServerTool>();
     var toolType = typeof(T);
