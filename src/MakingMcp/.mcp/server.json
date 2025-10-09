@@ -6,7 +6,7 @@
     {
       "registry_name": "nuget",
       "name": "MakingMcp",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "package_arguments": [],
       "environment_variables": [
         "OPENAI_API_KEY",
@@ -21,6 +21,6 @@
     "source": "github"
   },
   "version_detail": {
-    "version": "0.2.5"
+    "version": "0.2.6"
   }
 }
