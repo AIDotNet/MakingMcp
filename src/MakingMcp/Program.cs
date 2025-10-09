@@ -120,7 +120,7 @@ internal static class Program
         toolDictionary.TryAdd("MultiEdit", multiEditTools);
         toolDictionary.TryAdd("Read", readTools);
         toolDictionary.TryAdd("Write", writeTools);
-        if (!string.IsNullOrEmpty(WebTool.GetTavilyApiKey()))
+        if (!string.IsNullOrEmpty(OpenAIOptions.TAVILY_API_KEY))
         {
             toolDictionary.TryAdd("Web", webTools);
         }
