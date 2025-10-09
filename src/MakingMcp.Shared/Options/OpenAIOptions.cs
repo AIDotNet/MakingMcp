@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Configuration;
+
 public class OpenAIOptions
 {
     public static string? API_KEY { get; private set; }
@@ -37,6 +39,33 @@ public class OpenAIOptions
         }
 
         var embeddingModel = ReadEnv(EmbeddingModelVariable);
+        if (!string.IsNullOrWhiteSpace(embeddingModel))
+        {
+            EMBEDDING_MODEL = embeddingModel;
+        }
+    }
+
+    public static void Init(IConfiguration configuration)
+    {
+        API_KEY = configuration[ApiKeyVariable];
+
+        OPENAI_ENDPOINT = configuration[EndpointVariable];
+        if (!string.IsNullOrWhiteSpace(OPENAI_ENDPOINT) &&
+            !Uri.IsWellFormedUriString(OPENAI_ENDPOINT, UriKind.Absolute))
+        {
+            throw new Exception(
+                $"Configuration {EndpointVariable} is not a valid absolute URL. Current value: {OPENAI_ENDPOINT}");
+        }
+
+        TASK_MODEL = configuration[TaskModelVariable];
+
+        var maxOutputTokens = configuration[MaxOutputTokensVariable];
+        if (!string.IsNullOrWhiteSpace(maxOutputTokens) && int.TryParse(maxOutputTokens, out var tokens))
+        {
+            MAX_OUTPUT_TOKENS = tokens;
+        }
+
+        var embeddingModel = configuration[EmbeddingModelVariable];
         if (!string.IsNullOrWhiteSpace(embeddingModel))
         {
             EMBEDDING_MODEL = embeddingModel;

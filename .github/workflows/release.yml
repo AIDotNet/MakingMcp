@@ -47,6 +47,18 @@ jobs:
       - name: Publish for macOS x64
         run: dotnet publish src/MakingMcp/MakingMcp.csproj --configuration Release --runtime osx-x64 --self-contained true --output publish/osx-x64
 
+      - name: Restore Web dependencies
+        run: dotnet restore src/MakingMcp.Web/MakingMcp.Web.csproj
+
+      - name: Build Web Release
+        run: dotnet build src/MakingMcp.Web/MakingMcp.Web.csproj --configuration Release --no-restore
+
+      - name: Publish Web for Windows x64
+        run: dotnet publish src/MakingMcp.Web/MakingMcp.Web.csproj --configuration Release --runtime win-x64 --self-contained true --output publish/web-win-x64
+
+      - name: Publish Web for macOS x64
+        run: dotnet publish src/MakingMcp.Web/MakingMcp.Web.csproj --configuration Release --runtime osx-x64 --self-contained true --output publish/web-osx-x64
+
       - name: Create Windows ZIP package
         run: |
           cd publish/win-x64
@@ -63,6 +75,18 @@ jobs:
         run: |
           cd publish/osx-x64
           7z a "../../MakingMcp-osx-x64.zip" *
+        shell: bash
+
+      - name: Create Web Windows ZIP package
+        run: |
+          cd publish/web-win-x64
+          Compress-Archive -Path * -DestinationPath "../../MakingMcp-Web-win-x64.zip"
+        shell: pwsh
+
+      - name: Create Web macOS ZIP package
+        run: |
+          cd publish/web-osx-x64
+          7z a "../../MakingMcp-Web-osx-x64.zip" *
         shell: bash
 
       - name: Get tag name
@@ -101,6 +125,8 @@ jobs:
             MakingMcp-win-x64.zip
             MakingMcp-linux-x64.zip
             MakingMcp-osx-x64.zip
+            MakingMcp-Web-win-x64.zip
+            MakingMcp-Web-osx-x64.zip
           prerelease: ${{ env.IS_TAG == 'false' }}
           make_latest: ${{ env.IS_TAG == 'false' }}
           draft: false

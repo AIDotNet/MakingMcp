@@ -211,7 +211,7 @@ public class TaskTool
          4. The agent's outputs should generally be trusted
          5. Clearly tell the agent whether you expect it to write code or just to do research (search, file reads, web fetches, etc.), since it is not aware of the user's intent
          """)]
-    public static async Task<string> TaskAsync(
+    public static async Task<TextContent> TaskAsync(
         McpServer mcpServer,
         [Description("A short (3-5 word) description of the task")]
         string description,
@@ -293,7 +293,13 @@ public class TaskTool
 
             var result = completionResult ?? sb.ToString();
 
-            return result;
+            return 
+                $"""
+                    <system-reminder>
+                    This is the end of the agent's report. You can now respond to the user.
+                    </system-reminder>
+                    {result}
+                    """;
         }
         catch (Exception ex)
         {

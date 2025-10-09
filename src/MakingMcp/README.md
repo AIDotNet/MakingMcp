@@ -39,7 +39,7 @@ dotnet run --project AgentMcp
       "env": {
         "TASK_MODEL": "gpt-4.1",
         "OPENAI_ENDPOINT": "https://api.token-ai.cn/v1",
-        "API_KEY": "你的Key"
+        "OPENAI_API_KEY": "你的Key"
       }
     }
   }
