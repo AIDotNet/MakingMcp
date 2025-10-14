@@ -168,7 +168,10 @@ public class BashTool
                 Sessions[session.Id] = session;
 
                 return
-                    $"SUCCESS: Started background bash session with id: {session.Id}\nUse the BashOutput tool with this id to check output as it becomes available.";
+                    $"""
+                     SUCCESS: Started background bash session with id: {session.Id}
+                     Use the BashOutput tool with this id to check output as it becomes available.
+                     """;
             }
             else
             {
@@ -208,18 +211,30 @@ public class BashTool
 
     private static Process CreateProcess(string command)
     {
-        var escaped = command.Replace("\"", "\\\"");
+        var isWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
+        var processStartInfo = new ProcessStartInfo
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        if (isWindows)
+        {
+            processStartInfo.FileName = "cmd.exe";
+            processStartInfo.Arguments = $"/C \"{command}\"";
+        }
+        else
+        {
+            var escaped = command.Replace("\"", "\\\"");
+            processStartInfo.FileName = "/bin/bash";
+            processStartInfo.Arguments = $"-lc \"{escaped}\"";
+        }
+
         return new Process
         {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = "/bin/bash",
-                Arguments = $"-lc \"{escaped}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            },
+            StartInfo = processStartInfo,
             EnableRaisingEvents = true,
         };
     }
@@ -238,7 +253,7 @@ public class BashTool
             // ignored
         }
     }
-    
+
     private static string Error(string message)
     {
         return $"ERROR: {message}";

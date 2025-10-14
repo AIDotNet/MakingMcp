@@ -1,31 +1,36 @@
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using MakingMcp.Model;
 using Microsoft.SemanticKernel;
 using ModelContextProtocol.Server;
 
-namespace MakingMcp.Tools;
+namespace MakingMcp.Shared.Tools;
 
 public class EditTool
 {
     public const int GlobOutputLimit = 200;
+
     private static readonly ConcurrentDictionary<string, DateTime> ReadTracker = new(StringComparer.OrdinalIgnoreCase);
 
     [McpServerTool(Name = "Edit"), KernelFunction("Edit"), Description(
-         "Performs exact string replacements in files. \n\nUsage:\n- You must use your `Read` tool at least once in the conversation before editing. This tool will error if you attempt an edit without reading the file. \n- When editing text from Read tool output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: spaces + line number + tab. Everything after that tab is the actual file content to match. Never include any part of the line number prefix in the old_string or new_string.\n- ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.\n- Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.\n- The edit will FAIL if `old_string` is not unique in the file. Either provide a larger string with more surrounding context to make it unique or use `replace_all` to change every instance of `old_string`. \n- Use `replace_all` for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance.")]
+         """
+         Performs exact string replacements in files. 
+         Usage:
+         - You must use your `Read` tool at least once in the conversation before editing. This tool will error if you attempt an edit without reading the file. 
+         - When editing text from Read tool output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: spaces + line number + tab. Everything after that tab is the actual file content to match. Never include any part of the line number prefix in the old_string or new_string.
+         - ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.
+         - Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.
+         - The edit will FAIL if `old_string` is not unique in the file. Either provide a larger string with more surrounding context to make it unique or use `replace_all` to change every instance of `old_string`. 
+         - Use `replace_all` for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance.
+         """)]
     public static async Task<string> Edit(
         [Description("The absolute path to the file to modify")]
         string file_path,
         [Description("The text to replace it with (must be different from old_string)")]
         string new_string,
-        [Description("The text to replace")] string old_string,
+        [Description("The text to replace")] string? old_string,
         [Description("Replace all occurences of old_string (default false)")]
         bool replace_all = false
     )
@@ -53,9 +58,12 @@ public class EditTool
             return await Task.FromResult(Error("Parameter new_string must be provided."));
         }
 
-        if (string.Equals(old_string, new_string, StringComparison.Ordinal))
+        if (!string.IsNullOrEmpty(old_string))
         {
-            return await Task.FromResult(Error("old_string and new_string must differ."));
+            if (string.Equals(old_string, new_string, StringComparison.Ordinal))
+            {
+                return await Task.FromResult(Error("old_string and new_string must differ."));
+            }
         }
 
         try
@@ -230,19 +238,6 @@ public class EditTool
     public static string Error(string message)
     {
         return JsonSerializer.Serialize(new { error = message }, JsonSerializerOptions.Web);
-    }
-
-    private static async Task<string> CreateAndInitializeFile(string filePath)
-    {
-        var directory = Path.GetDirectoryName(filePath);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
-        await File.WriteAllTextAsync(filePath, string.Empty);
-        MarkRead(filePath);
-        return string.Empty; // No error
     }
 
     private static async Task<string> HandleEmptyFileEdit(string filePath, string newContent)

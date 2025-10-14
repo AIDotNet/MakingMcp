@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Security.Principal;
+using MakingMcp.Shared.Tools;
 using MakingMcp.Tools;
 using ModelContextProtocol.Server;
 using Serilog;

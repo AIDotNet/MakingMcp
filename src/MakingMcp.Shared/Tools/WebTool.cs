@@ -90,7 +90,6 @@ public class WebTool
          - Domain filtering is supported to include or block specific websites
          - Web search is only available in the US
          - Account for "Today's date" in <env>. For example, if <env> says "Today's date: 2025-09-26", and the user wants the latest docs, do not use 2024 in the search query. Use 2025.
-
          """)]
     public static async Task<string> WebSearch(
         [Description("Only include search results from these domains")]

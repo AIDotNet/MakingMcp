@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using Microsoft.SemanticKernel;
 
-namespace MakingMcp.Tools;
+namespace MakingMcp.Shared.Tools;
 
 public class CompleteTool(Func<string, Task> completeTaskFunc)
 {

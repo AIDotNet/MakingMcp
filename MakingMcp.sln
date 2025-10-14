@@ -2,8 +2,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{651E0683-A136-4516-81B4-525C55AD37DD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MakingMcp", "src\MakingMcp\MakingMcp.csproj", "{BF69A16D-836E-4971-8FE9-6C776315C349}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MakingMcp.Web", "src\MakingMcp.Web\MakingMcp.Web.csproj", "{C94F892C-0DC4-40A2-9F95-D7375A1F120D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MakingMcp.Shared", "src\MakingMcp.Shared\MakingMcp.Shared.csproj", "{8D91861C-3D00-4FC5-9C26-72C07E8E3B28}"
@@ -19,15 +17,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{BF69A16D-836E-4971-8FE9-6C776315C349} = {651E0683-A136-4516-81B4-525C55AD37DD}
 		{C94F892C-0DC4-40A2-9F95-D7375A1F120D} = {651E0683-A136-4516-81B4-525C55AD37DD}
 		{8D91861C-3D00-4FC5-9C26-72C07E8E3B28} = {651E0683-A136-4516-81B4-525C55AD37DD}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{BF69A16D-836E-4971-8FE9-6C776315C349}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BF69A16D-836E-4971-8FE9-6C776315C349}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BF69A16D-836E-4971-8FE9-6C776315C349}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BF69A16D-836E-4971-8FE9-6C776315C349}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C94F892C-0DC4-40A2-9F95-D7375A1F120D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C94F892C-0DC4-40A2-9F95-D7375A1F120D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C94F892C-0DC4-40A2-9F95-D7375A1F120D}.Release|Any CPU.ActiveCfg = Release|Any CPU
