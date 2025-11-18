@@ -158,7 +158,6 @@ static void PopulateToolDictionary(ConcurrentDictionary<string, McpServerTool[]>
     var writeTools = GetToolsForType<WriteTool>();
     McpServerTool[] allTools =
     [
-        .. taskTools,
         .. bashOutputTools,
         .. bashTools,
         .. editTools,

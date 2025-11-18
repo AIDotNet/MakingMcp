@@ -2,15 +2,11 @@
 using MakingMcp.Shared.Tools;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 using ModelContextProtocol.Server;
 using OpenAI;
 using Serilog;
 using System.ClientModel;
 using System.ComponentModel;
-using System.Net;
 using System.Text;
 
 namespace MakingMcp.Tools;
@@ -249,7 +245,7 @@ public class TaskTool
          </example>
          """;
 
-    [McpServerTool(Name = "Task"), KernelFunction("Task"),
+    [McpServerTool(Name = "Task"),
      Description(
          """
          Launch a new agent that has access to the following tools: Bash, Glob, Grep, LS, exit_plan_mode, Read, Edit, MultiEdit, Write, NotebookRead, NotebookEdit, WebFetch, TodoWrite, WebSearch, mcp__ide__getDiagnostics. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries, use the Agent tool to perform the search for you.
