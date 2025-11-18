@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using AIDotNet.Toon;
 using Microsoft.SemanticKernel;
 using ModelContextProtocol.Server;
 
@@ -75,7 +76,7 @@ public class WebTool
             return Error("Tavily did not return any textual content for the requested URL.");
         }
         
-        return JsonSerializer.Serialize(extractResult.Payload!["results"], JsonSerializerOptions.Web);
+        return ToonSerializer.Serialize(extractResult.Payload!["results"]);
     }
 
     [McpServerTool(Name = "WebSearch"), Description(
@@ -137,7 +138,7 @@ public class WebTool
 
         var (answer, results) = ExtractSearchResults(searchResult.Payload);
 
-        return JsonSerializer.Serialize(results, JsonSerializerOptions.Web);
+        return ToonSerializer.Serialize(results);
     }
 
     private static bool TryNormalizeUrl(string? rawUrl, out string normalizedUrl, out string? error)

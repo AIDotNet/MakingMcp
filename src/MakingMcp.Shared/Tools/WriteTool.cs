@@ -46,8 +46,7 @@ public class WriteTool
 
             await File.WriteAllTextAsync(normalizedPath, content);
             EditTool.MarkRead(normalizedPath);
-
-            return "Successfully wrote file: " + normalizedPath;
+            return "File created successfully at:" + normalizedPath;
         }
         catch (Exception ex)
         {

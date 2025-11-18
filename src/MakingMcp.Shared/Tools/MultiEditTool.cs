@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Text.Json;
+using AIDotNet.Toon;
 using MakingMcp.Model;
 using MakingMcp.Tools;
 using Microsoft.SemanticKernel;
@@ -127,14 +128,14 @@ public class MultiEditTool
 
             await File.WriteAllTextAsync(normalizedPath, updatedContent);
 
-            return JsonSerializer.Serialize(new
+            return ToonSerializer.Serialize(new
             {
                 filePath = file_path,
                 message = " Successfully applied all edits.",
                 totalEdits = edits.Length,
                 totalChanges,
                 lengthChange = updatedContent.Length - originalContent.Length,
-            }, JsonSerializerOptions.Web);
+            });
         }
         catch (Exception ex)
         {

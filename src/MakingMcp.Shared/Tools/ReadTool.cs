@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
+using AIDotNet.Toon;
 using MakingMcp.Tools;
 using Microsoft.SemanticKernel;
 using ModelContextProtocol.Server;
@@ -79,14 +80,13 @@ public class ReadTool
             for (var index = 0; index < slice.Count; index++)
             {
                 var lineNumber = offset + index + 1;
-                sb.Append(lineNumber.ToString().PadLeft(6));
-                sb.Append(' ');
+                sb.Append(lineNumber.ToString().PadLeft(6)+ "→");
                 sb.AppendLine(slice[index]);
             }
 
             EditTool.MarkRead(normalizedPath);
 
-            return JsonSerializer.Serialize(new
+            return ToonSerializer.Serialize(new
             {
                 file_path = normalizedPath,
                 content = sb.ToString(),
@@ -94,7 +94,7 @@ public class ReadTool
                 lines_returned = slice.Count,
                 offset,
                 limit
-            }, JsonSerializerOptions.Web);
+            });
         }
         catch (Exception ex)
         {
