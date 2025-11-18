@@ -5,10 +5,9 @@ namespace MakingMcp.Shared.Tools;
 
 public class CompleteTool(Func<string, Task> completeTaskFunc)
 {
-    [KernelFunction("complete_task"),
-     Description(
+    [Description(
          "Use this tool when you have completed the task to provide your final answer")]
-    public async Task<string> CompleteTask(
+    public async  Task<string> CompleteTask(
         [Description(
             "The final result of the task")]
         string result)

@@ -7,7 +7,7 @@ namespace MakingMcp.Shared.Tools;
 
 public class WriteTool
 {
-    [McpServerTool(Name = "Write"), KernelFunction("Write"), Description(
+    [McpServerTool(Name = "Write"),  Description(
          """
          Writes a file to the local filesystem.
 

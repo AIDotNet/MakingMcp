@@ -2,7 +2,7 @@
     <!-- See https://aka.ms/dotnet/msbuild/customize for more details on customizing your build -->
     <PropertyGroup>
         <PackageVersion>$(Version)</PackageVersion>
-        <Version>0.2.8</Version>
+        <Version>0.2.9</Version>
         <Authors>AIDtoNet</Authors>
         <Company>AIDotNet</Company>
         <Product>MakingMcp</Product>

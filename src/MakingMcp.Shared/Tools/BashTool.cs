@@ -16,7 +16,7 @@ public class BashTool
     public static readonly ConcurrentDictionary<string, BashSession> Sessions =
         new(StringComparer.OrdinalIgnoreCase);
 
-    [McpServerTool(Name = "Bash"), KernelFunction("Bash"), Description(
+    [McpServerTool(Name = "Bash"),Description(
          """
          Executes a given bash command in a persistent shell session with optional timeout, ensuring proper handling and security measures.
          Before executing the command, please follow these steps:
@@ -211,7 +211,6 @@ public class BashTool
 
     private static Process CreateProcess(string command)
     {
-        var isWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
         var processStartInfo = new ProcessStartInfo
         {
             RedirectStandardOutput = true,
@@ -220,7 +219,7 @@ public class BashTool
             CreateNoWindow = true,
         };
 
-        if (isWindows)
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
         {
             processStartInfo.FileName = "cmd.exe";
             processStartInfo.Arguments = $"/C \"{command}\"";

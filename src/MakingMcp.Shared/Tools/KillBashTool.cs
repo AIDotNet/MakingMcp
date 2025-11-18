@@ -7,7 +7,7 @@ namespace MakingMcp.Shared.Tools;
 
 public class KillBashTool
 {
-    [McpServerTool(Name = "KillBash"), KernelFunction("KillBash"), Description(
+    [McpServerTool(Name = "KillBash"), Description(
          """
          - Kills a running background bash shell by its ID
          - Takes a shell_id parameter identifying the shell to kill

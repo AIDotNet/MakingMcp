@@ -1,10 +1,9 @@
+using ModelContextProtocol.Server;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Microsoft.SemanticKernel;
-using ModelContextProtocol.Server;
 
 namespace MakingMcp.Shared.Tools;
 
@@ -14,7 +13,7 @@ public class EditTool
 
     private static readonly ConcurrentDictionary<string, DateTime> ReadTracker = new(StringComparer.OrdinalIgnoreCase);
 
-    [McpServerTool(Name = "Edit"), KernelFunction("Edit"), Description(
+    [McpServerTool(Name = "Edit"),  Description(
          """
          Performs exact string replacements in files. 
          Usage:

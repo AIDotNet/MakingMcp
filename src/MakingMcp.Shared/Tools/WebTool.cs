@@ -24,7 +24,7 @@ public class WebTool
     };
 
     [McpServerTool(Name = "WebFetch"),
-     KernelFunction("WebFetch"),
+     
      Description(
          """
          - Fetches content from a specified URL and processes it using an AI model
@@ -78,7 +78,7 @@ public class WebTool
         return JsonSerializer.Serialize(extractResult.Payload!["results"], JsonSerializerOptions.Web);
     }
 
-    [McpServerTool(Name = "WebSearch"), KernelFunction("WebSearch"), Description(
+    [McpServerTool(Name = "WebSearch"), Description(
          """
          - Allows Claude to search the web and use the results to inform responses
          - Provides up-to-date information for current events and recent data

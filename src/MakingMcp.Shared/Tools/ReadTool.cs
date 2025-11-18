@@ -12,7 +12,7 @@ public class ReadTool
     private const int DefaultMaxReadLines = 2000;
 
     [McpServerTool(Name = "Read"),
-     KernelFunction("Read"),
+     
      Description(
          """
          Reads a file from the local filesystem. You can access any file directly by using this tool.
@@ -32,7 +32,7 @@ public class ReadTool
          - You will regularly be asked to read screenshots. If the user provides a path to a screenshot ALWAYS use this tool to view the file at the path. This tool will work with all temporary file paths like /var/folders/123/abc/T/TemporaryItems/NSIRD_screencaptureui_ZfB1tD/Screenshot.png
          - If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents.
          """)]
-    public static async Task<TextContent> Read(
+    public static async Task<string> Read(
         string file_path,
         [Description("The number of lines to read. Only provide if the file is too large to read at once.")]
         int limit = DefaultMaxReadLines,

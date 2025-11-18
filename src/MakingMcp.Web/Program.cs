@@ -1,12 +1,12 @@
+using MakingMcp.Shared.Tools;
+using MakingMcp.Tools;
+using ModelContextProtocol.Server;
+using Serilog;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Security.Principal;
-using MakingMcp.Shared.Tools;
-using MakingMcp.Tools;
-using ModelContextProtocol.Server;
-using Serilog;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -50,8 +50,6 @@ try
     builder.Services.AddMcpServer()
         .WithHttpTransport(options =>
         {
-
-
             // Configure per-session options to filter tools based on route category
             options.ConfigureSessionOptions = async (httpContext, mcpOptions, _) =>
             {
@@ -112,7 +110,7 @@ try
                 };
                 mcpOptions.Capabilities = new();
                 mcpOptions.Capabilities.Tools = new();
-                var toolCollection = mcpOptions.ToolCollection = new McpServerPrimitiveCollection<McpServerTool>();
+                var toolCollection = mcpOptions.ToolCollection = [];
 
                 foreach (var tool in toolDictionary.SelectMany(x => x.Value))
                 {
@@ -149,11 +147,6 @@ finally
 
 static void PopulateToolDictionary(ConcurrentDictionary<string, McpServerTool[]> toolDictionary)
 {
-    // Get tools for each category
-    var taskTools = !string.IsNullOrEmpty(OpenAIOptions.TASK_MODEL)
-        ? GetToolsForType<TaskTool>()
-        : [];
-
     var bashOutputTools = GetToolsForType<BashOutputTool>();
     var bashTools = GetToolsForType<BashTool>();
     var editTools = GetToolsForType<EditTool>();
@@ -188,11 +181,6 @@ static void PopulateToolDictionary(ConcurrentDictionary<string, McpServerTool[]>
     if (!string.IsNullOrEmpty(OpenAIOptions.TAVILY_API_KEY))
     {
         toolDictionary.TryAdd("Web", webTools);
-    }
-
-    if (!string.IsNullOrEmpty(OpenAIOptions.TASK_MODEL))
-    {
-        toolDictionary.TryAdd("Task", taskTools);
     }
 
     toolDictionary.TryAdd("all", allTools);

@@ -9,7 +9,7 @@ namespace MakingMcp.Shared.Tools;
 
 public class BashOutputTool
 {
-    [McpServerTool(Name = "BashOutput"), KernelFunction("BashOutput"), Description(
+    [McpServerTool(Name = "BashOutput"), Description(
          """
 
          - Retrieves output from a running or completed background bash shell
