@@ -1,3 +1,4 @@
+using MakingMcp.Shared.Infrastructure;
 using ModelContextProtocol.Server;
 using System.Collections.Concurrent;
 using System.ComponentModel;
@@ -25,6 +26,7 @@ public class EditTool
          - Use `replace_all` for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance.
          """)]
     public static async Task<string> Edit(
+        McpServer mcpServer,
         [Description("The absolute path to the file to modify")]
         string file_path,
         [Description("The text to replace it with (must be different from old_string)")]
@@ -34,6 +36,15 @@ public class EditTool
         bool replace_all = false
     )
     {
+        // Log Edit tool invocation so the dashboard can show function and arguments.
+        ToolInvocationLogger.Log("Edit.Edit", new
+        {
+            file_path,
+            old_string,
+            new_string,
+            replace_all
+        }, mcpServer.SessionId);
+
         if (!TryNormalizeAbsolutePath(file_path, out var normalizedPath, out var error))
         {
             return await Task.FromResult(Error(error));

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
+using MakingMcp.Shared.Infrastructure;
 using Microsoft.SemanticKernel;
 using ModelContextProtocol.Server;
 
@@ -130,6 +131,7 @@ public class BashTool
          - View comments on a Github PR: gh api repos/foo/bar/pulls/123/comments
          """)]
     public static async Task<string> RunBashCommand(
+        McpServer mcpServer,
         [Description("The command to execute")]
         string command,
         [Description("Clear, concise description of what this command does in 5-10 words, in active voice.")]
@@ -148,6 +150,15 @@ public class BashTool
         {
             return Error("description must be provided.");
         }
+
+        // Log Bash tool invocation to the Spectre console dashboard.
+        ToolInvocationLogger.Log("Bash.RunBashCommand", new
+        {
+            command,
+            description,
+            run_in_background,
+            timeout
+        }, mcpServer.SessionId);
 
         var timeoutMs = timeout > 0 ? Math.Min(timeout, 600_000) : DefaultTimeoutMs;
 

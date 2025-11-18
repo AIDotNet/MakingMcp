@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
+using MakingMcp.Shared.Infrastructure;
 using MakingMcp.Tools;
 using Microsoft.SemanticKernel;
 using ModelContextProtocol.Server;
@@ -16,9 +17,16 @@ public class KillBashTool
          - Shell IDs can be found using the /bashes command
          """)]
     public static async Task<string> KillBash(
+        McpServer mcpServer,
         [Description("The ID of the background shell to kill")]
         string shell_id)
     {
+        // Log KillBash tool invocation so the dashboard can show function and arguments.
+        ToolInvocationLogger.Log("KillBash.KillBash", new
+        {
+            shell_id
+        }, mcpServer.SessionId);
+
         if (string.IsNullOrWhiteSpace(shell_id))
         {
             return Error("shell_id must be provided.");

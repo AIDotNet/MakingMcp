@@ -1,6 +1,7 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
+using MakingMcp.Shared.Infrastructure;
 using MakingMcp.Tools;
 using Microsoft.SemanticKernel;
 using ModelContextProtocol.Server;
@@ -21,6 +22,7 @@ public class BashOutputTool
          - Shell IDs can be found using the /bashes command
          """)]
     public static async Task<string> BashOutput(
+        McpServer mcpServer,
         [Description("The ID of the background shell to retrieve output from")]
         [Required]
         string bashId,
@@ -30,6 +32,13 @@ public class BashOutputTool
             """)]
         string? filter)
     {
+        // Log BashOutput tool invocation so the dashboard can show function and arguments.
+        ToolInvocationLogger.Log("BashOutput.BashOutput", new
+        {
+            bashId,
+            filter
+        }, mcpServer.SessionId);
+
         if (string.IsNullOrWhiteSpace(bashId))
         {
             return await Task.FromResult(Error("bash_id must be provided."));

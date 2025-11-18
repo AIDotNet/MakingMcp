@@ -1,4 +1,6 @@
-﻿using MakingMcp.Model;
+using MakingMcp.Model;
+using MakingMcp.Shared.Infrastructure;
+using MakingMcp.Shared.Options;
 using MakingMcp.Shared.Tools;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -286,6 +288,13 @@ public class TaskTool
         [Description("The task for the agent to perform. Include working directory if task involves file operations.")]
         string prompt)
     {
+        // Log Task tool invocation so the dashboard can show function and arguments.
+        ToolInvocationLogger.Log("Task.TaskAsync", new
+        {
+            description,
+            prompt
+        }, mcpServer.SessionId);
+
         var taskId = Guid.NewGuid().ToString("N")[..8];
         Log.Information("[Task {TaskId}] Starting task: {Description}", taskId, description);
         Log.Debug("[Task {TaskId}] Prompt: {Prompt}", taskId, prompt);
@@ -348,6 +357,7 @@ public class TaskTool
                 if (!string.IsNullOrEmpty(item.Text.ToString()))
                 {
                     sb.Append(item.Text.ToString());
+                    Console.Write(item.Text.ToString());
                 }
             }
 

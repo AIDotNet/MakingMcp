@@ -1,7 +1,8 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
 using AIDotNet.Toon;
+using MakingMcp.Shared.Infrastructure;
 using MakingMcp.Tools;
 using Microsoft.SemanticKernel;
 using ModelContextProtocol.Server;
@@ -34,6 +35,7 @@ public class ReadTool
          - If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents.
          """)]
     public static async Task<string> Read(
+        McpServer mcpServer,
         string file_path,
         [Description("The number of lines to read. Only provide if the file is too large to read at once.")]
         int limit = DefaultMaxReadLines,
@@ -41,6 +43,14 @@ public class ReadTool
         int offset = 0
     )
     {
+        // Log Read tool invocation so the dashboard can show function and arguments.
+        ToolInvocationLogger.Log("Read.Read", new
+        {
+            file_path,
+            limit,
+            offset
+        }, mcpServer.SessionId);
+
         if (!EditTool.TryNormalizeAbsolutePath(file_path, out var normalizedPath, out var error))
         {
             return await Task.FromResult(EditTool.Error(error));

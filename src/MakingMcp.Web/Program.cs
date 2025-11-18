@@ -1,15 +1,22 @@
+using MakingMcp.Shared.Options;
 using MakingMcp.Shared.Tools;
 using MakingMcp.Tools;
+using MakingMcp.Shared.Infrastructure;
 using ModelContextProtocol.Server;
 using Serilog;
+using Spectre.Console;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Security.Principal;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+
+var version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "1.0.0";
 
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
+    .MinimumLevel.Error()
     .WriteTo.File("logs/makingmcp-.log", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 
@@ -35,10 +42,31 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.UseSerilog();
+    builder.Host.UseSerilog((context, services, loggerConfig) =>
+    {
+        loggerConfig
+            .MinimumLevel.Error()
+            .WriteTo.File("logs/makingmcp-.log", rollingInterval: RollingInterval.Day)
+            .Enrich.FromLogContext()
+            .Enrich.WithProperty("Application", "MakingMcp.Web");
+    });
+
+    // Suppress ASP.NET Core's default logging to the console
+    builder.Logging.ClearProviders();
 
     OpenAIOptions.Init(builder.Configuration);
     Log.Information("OpenAI configuration initialized");
+
+    // Initialize Spectre console dashboard with version, model and search info.
+    var model = OpenAIOptions.TASK_MODEL;
+    var searchEnabled = !string.IsNullOrEmpty(OpenAIOptions.TAVILY_API_KEY);
+    var dashboard = new ConsoleDashboard(version, model, searchEnabled);
+    dashboard.CurrentPhase = "Starting Service";
+    dashboard.Status = "Initializing";
+    AnsiConsole.Clear();
+    dashboard.Start();
+
+    // Dashboard starts on background thread, no need to wait
 
     // Add Windows Service support
     builder.Services.AddWindowsService(options => { options.ServiceName = "MakingMcpWebService"; });
@@ -53,6 +81,15 @@ try
             // Configure per-session options to filter tools based on route category
             options.ConfigureSessionOptions = async (httpContext, mcpOptions, _) =>
             {
+                var clientId = Guid.NewGuid().ToString("N");
+
+                mcpOptions.Capabilities = new ModelContextProtocol.Protocol.ServerCapabilities()
+                {
+                    Experimental = new Dictionary<string, object>()
+                    {
+                        {  "session", clientId }
+                    }
+                };
                 // Determine tool category from route parameters
                 var toolCategory = httpContext.Request.Query["tools"].ToString()?.ToLower();
 
@@ -60,6 +97,10 @@ try
                 {
                     toolCategory = "all";
                 }
+
+                // Log the client connection in the dashboard.
+                dashboard.LogClientConnected(clientId, toolCategory);
+                dashboard.CurrentPhase = "Processing Client Requests";
 
                 var toolDictionary = new ConcurrentDictionary<string, McpServerTool[]>();
                 PopulateToolDictionary(toolDictionary);
@@ -133,6 +174,14 @@ try
     app.MapMcp("/mcp");
 
     Log.Information("MakingMcp Web Service started successfully");
+
+    // Update dashboard status
+    dashboard.CurrentPhase = "Service Ready - Listening for Connections";
+    dashboard.Status = "Running";
+
+    // Log MCP endpoint info to the dashboard
+    dashboard.LogFunctionCall("system", "MCP.Startup", $"{{\"endpoint\": \"{app.Configuration["Urls"]}/mcp\"}}");
+
     app.Run();
 }
 catch (Exception ex)
@@ -156,7 +205,9 @@ static void PopulateToolDictionary(ConcurrentDictionary<string, McpServerTool[]>
     var readTools = GetToolsForType<ReadTool>();
     var webTools = GetToolsForType<WebTool>();
     var writeTools = GetToolsForType<WriteTool>();
-    McpServerTool[] allTools =
+    var taskTools = GetToolsForType<TaskTool>();
+
+    List<McpServerTool> allTools =
     [
         .. bashOutputTools,
         .. bashTools,
@@ -177,12 +228,21 @@ static void PopulateToolDictionary(ConcurrentDictionary<string, McpServerTool[]>
     toolDictionary.TryAdd("MultiEdit", multiEditTools);
     toolDictionary.TryAdd("Read", readTools);
     toolDictionary.TryAdd("Write", writeTools);
+
+    if (!string.IsNullOrEmpty(OpenAIOptions.OPENAI_ENDPOINT) &&
+       !string.IsNullOrEmpty(OpenAIOptions.API_KEY))
+    {
+        toolDictionary.TryAdd("Task", taskTools);
+        allTools.AddRange(taskTools);
+    }
+
+
     if (!string.IsNullOrEmpty(OpenAIOptions.TAVILY_API_KEY))
     {
         toolDictionary.TryAdd("Web", webTools);
     }
 
-    toolDictionary.TryAdd("all", allTools);
+    toolDictionary.TryAdd("all", allTools.ToArray());
 }
 
 static McpServerTool[] GetToolsForType<[DynamicallyAccessedMembers(
@@ -204,7 +264,7 @@ T>()
         catch (Exception ex)
         {
             // Log error but continue with other tools
-            Console.WriteLine($"Failed to add tool {toolType.Name}.{method.Name}: {ex.Message}");
+            AnsiConsole.MarkupLine($"[red]Failed to add tool {toolType.Name}.{method.Name}: {ex.Message}[/]");
         }
     }
 
@@ -215,8 +275,8 @@ static void InstallWindowsService()
 {
     if (!IsAdministrator())
     {
-        Console.WriteLine("Error: Administrator privileges required to install Windows Service.");
-        Console.WriteLine("Please run this application as Administrator.");
+        AnsiConsole.MarkupLine("[red]Error: Administrator privileges required to install Windows Service.[/]");
+        AnsiConsole.MarkupLine("Please run this application as Administrator.");
         Environment.Exit(1);
         return;
     }
@@ -229,8 +289,8 @@ static void InstallWindowsService()
         var displayName = "MakingMcp Web Service";
         var description = "MCP (Model Context Protocol) Web Service for AI tool integration";
 
-        Console.WriteLine($"Installing Windows Service: {serviceName}");
-        Console.WriteLine($"Executable: {exePath}");
+        AnsiConsole.MarkupLine($"Installing Windows Service: [blue]{serviceName}[/]");
+        AnsiConsole.MarkupLine($"Executable: [blue]{exePath}[/]");
 
         // Create the service using sc.exe
         var createProcess = new Process
@@ -254,7 +314,7 @@ static void InstallWindowsService()
 
         if (createProcess.ExitCode == 0)
         {
-            Console.WriteLine("Service created successfully.");
+            AnsiConsole.MarkupLine("[green]Service created successfully.[/]");
 
             // Set service description
             var descProcess = new Process
@@ -273,10 +333,10 @@ static void InstallWindowsService()
             descProcess.Start();
             descProcess.WaitForExit();
 
-            Console.WriteLine($"\nService '{serviceName}' installed successfully!");
+            AnsiConsole.MarkupLine($"\n[green]Service '{serviceName}' installed successfully![/]");
 
             // Start the service automatically after installation
-            Console.WriteLine($"Starting service '{serviceName}'...");
+            AnsiConsole.MarkupLine($"Starting service '[blue]{serviceName}[/]'...");
             var startProcess = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -297,28 +357,28 @@ static void InstallWindowsService()
 
             if (startProcess.ExitCode == 0)
             {
-                Console.WriteLine($"Service '{serviceName}' started successfully!");
+                AnsiConsole.MarkupLine($"[green]Service '{serviceName}' started successfully![/]");
             }
             else
             {
-                Console.WriteLine($"Service installed but failed to start. Exit code: {startProcess.ExitCode}");
-                if (!string.IsNullOrEmpty(startOutput)) Console.WriteLine($"Output: {startOutput}");
-                if (!string.IsNullOrEmpty(startError)) Console.WriteLine($"Error: {startError}");
-                Console.WriteLine($"\nYou can start it manually with: sc start {serviceName}");
-                Console.WriteLine($"Or use: net start {serviceName}");
+                AnsiConsole.MarkupLine($"[yellow]Service installed but failed to start. Exit code: {startProcess.ExitCode}[/]");
+                if (!string.IsNullOrEmpty(startOutput)) AnsiConsole.MarkupLine($"Output: {startOutput}");
+                if (!string.IsNullOrEmpty(startError)) AnsiConsole.MarkupLine($"Error: {startError}");
+                AnsiConsole.MarkupLine($"\nYou can start it manually with: [blue]sc start {serviceName}[/]");
+                AnsiConsole.MarkupLine($"Or use: [blue]net start {serviceName}[/]");
             }
         }
         else
         {
-            Console.WriteLine($"Failed to create service. Exit code: {createProcess.ExitCode}");
-            if (!string.IsNullOrEmpty(output)) Console.WriteLine($"Output: {output}");
-            if (!string.IsNullOrEmpty(error)) Console.WriteLine($"Error: {error}");
+            AnsiConsole.MarkupLine($"[red]Failed to create service. Exit code: {createProcess.ExitCode}[/]");
+            if (!string.IsNullOrEmpty(output)) AnsiConsole.MarkupLine($"Output: {output}");
+            if (!string.IsNullOrEmpty(error)) AnsiConsole.MarkupLine($"Error: {error}");
             Environment.Exit(1);
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error installing service: {ex.Message}");
+        AnsiConsole.MarkupLine($"[red]Error installing service: {ex.Message}[/]");
         Environment.Exit(1);
     }
 }
@@ -327,8 +387,8 @@ static void UninstallWindowsService()
 {
     if (!IsAdministrator())
     {
-        Console.WriteLine("Error: Administrator privileges required to uninstall Windows Service.");
-        Console.WriteLine("Please run this application as Administrator.");
+        AnsiConsole.MarkupLine("[red]Error: Administrator privileges required to uninstall Windows Service.[/]");
+        AnsiConsole.MarkupLine("Please run this application as Administrator.");
         Environment.Exit(1);
         return;
     }
@@ -337,7 +397,7 @@ static void UninstallWindowsService()
     {
         var serviceName = "MakingMcpWebService";
 
-        Console.WriteLine($"Uninstalling Windows Service: {serviceName}");
+        AnsiConsole.MarkupLine($"Uninstalling Windows Service: [blue]{serviceName}[/]");
 
         // Stop the service first (if running)
         var stopProcess = new Process
@@ -380,19 +440,19 @@ static void UninstallWindowsService()
 
         if (deleteProcess.ExitCode == 0)
         {
-            Console.WriteLine($"Service '{serviceName}' uninstalled successfully!");
+            AnsiConsole.MarkupLine($"Service '{serviceName}' uninstalled successfully!");
         }
         else
         {
-            Console.WriteLine($"Failed to delete service. Exit code: {deleteProcess.ExitCode}");
-            if (!string.IsNullOrEmpty(output)) Console.WriteLine($"Output: {output}");
-            if (!string.IsNullOrEmpty(error)) Console.WriteLine($"Error: {error}");
+            AnsiConsole.MarkupLine($"Failed to delete service. Exit code: {deleteProcess.ExitCode}");
+            if (!string.IsNullOrEmpty(output)) AnsiConsole.MarkupLine($"Output: {output}");
+            if (!string.IsNullOrEmpty(error)) AnsiConsole.MarkupLine($"Error: {error}");
             Environment.Exit(1);
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error uninstalling service: {ex.Message}");
+        AnsiConsole.MarkupLine($"Error uninstalling service: {ex.Message}");
         Environment.Exit(1);
     }
 }

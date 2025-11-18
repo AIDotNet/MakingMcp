@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Configuration;
 
+namespace MakingMcp.Shared.Options;
+
 public class OpenAIOptions
 {
     public static string? API_KEY { get; private set; }

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
+using MakingMcp.Shared.Infrastructure;
 using MakingMcp.Tools;
 using Microsoft.SemanticKernel;
 using ModelContextProtocol.Server;
@@ -19,12 +20,20 @@ public class WriteTool
          - Only use emojis if the user explicitly requests it. Avoid writing emojis to files unless asked.
          """)]
     public static async Task<string> Write(
+        McpServer mcpServer,
         [Description("The content to write to the file")]
         string content,
         [Description("The absolute path to the file to write (must be absolute, not relative)")]
         string file_path
     )
     {
+        // Log Write tool invocation so the dashboard can show function and arguments.
+        ToolInvocationLogger.Log("Write.Write", new
+        {
+            file_path,
+            contentLength = content?.Length ?? 0
+        }, mcpServer.SessionId);
+
         if (!EditTool.TryNormalizeAbsolutePath(file_path, out var normalizedPath, out var error))
         {
             return await Task.FromResult(EditTool.Error(error));

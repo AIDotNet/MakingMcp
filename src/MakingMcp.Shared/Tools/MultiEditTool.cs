@@ -1,7 +1,8 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Text.Json;
 using AIDotNet.Toon;
 using MakingMcp.Model;
+using MakingMcp.Shared.Infrastructure;
 using MakingMcp.Tools;
 using Microsoft.SemanticKernel;
 using ModelContextProtocol.Server;
@@ -56,11 +57,19 @@ public class MultiEditTool
          - Subsequent edits: normal edit operations on the created content
          """)]
     public static async Task<string> MultiEdit(
+        McpServer mcpServer,
         [Description("Array of edit operations to perform sequentially on the file")]
         MultiEditInput[] edits,
         [Description("The absolute path to the file to modify")]
         string file_path)
     {
+        // Log MultiEdit tool invocation so the dashboard can show function and arguments.
+        ToolInvocationLogger.Log("MultiEdit.MultiEdit", new
+        {
+            file_path,
+            editsCount = edits?.Length ?? 0
+        }, mcpServer.SessionId);
+
         if (edits is not { Length: > 0 })
         {
             return await Task.FromResult(EditTool.Error("At least one edit operation must be supplied."));

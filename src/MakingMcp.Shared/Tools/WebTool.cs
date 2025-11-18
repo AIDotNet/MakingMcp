@@ -5,6 +5,8 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using AIDotNet.Toon;
+using MakingMcp.Shared.Infrastructure;
+using MakingMcp.Shared.Options;
 using Microsoft.SemanticKernel;
 using ModelContextProtocol.Server;
 
@@ -46,11 +48,19 @@ public class WebTool
          - When a URL redirects to a different host, the tool will inform you and provide the redirect URL in a special format. You should then make a new WebFetch request with the redirect URL to fetch the content.
          """)]
     public static async Task<string> WebFetch(
+        McpServer mcpServer,
         [Description("The prompt to run on the fetched content")]
         string prompt,
         [Description("The URL to fetch content from")]
         string url)
     {
+        // Log WebFetch tool invocation so the dashboard can show function and arguments.
+        ToolInvocationLogger.Log("Web.WebFetch", new
+        {
+            prompt,
+            url
+        }, mcpServer.SessionId);
+
         if (string.IsNullOrEmpty(OpenAIOptions.TAVILY_API_KEY))
         {
             return Error("TAVILY_API_KEY environment variable is required for web access.");
@@ -93,6 +103,7 @@ public class WebTool
          - Account for "Today's date" in <env>. For example, if <env> says "Today's date: 2025-09-26", and the user wants the latest docs, do not use 2024 in the search query. Use 2025.
          """)]
     public static async Task<string> WebSearch(
+        McpServer mcpServer,
         [Description("Only include search results from these domains")]
         string[]? allowed_domains,
         [Description("Never include search results from these domains")]
@@ -100,6 +111,14 @@ public class WebTool
         [Description("The search query to use")]
         string query)
     {
+        // Log WebSearch tool invocation so the dashboard can show function and arguments.
+        ToolInvocationLogger.Log("Web.WebSearch", new
+        {
+            allowed_domains,
+            blocked_domains,
+            query
+        }, mcpServer.SessionId);
+
         if (string.IsNullOrWhiteSpace(query))
         {
             return Error("query must be provided.");
